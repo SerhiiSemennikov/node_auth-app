@@ -85,6 +85,9 @@ async function reqPasswordReset(email) {
   const passwordResetToken = uuidv4();
   const user = await getByEmail(email);
 
+  if (!user) {
+    throw ApiError.BadRequest('User not found');
+  }
   user.passwordResetToken = passwordResetToken;
   await user.save();
   emailService.sendResetEmail(email, passwordResetToken);

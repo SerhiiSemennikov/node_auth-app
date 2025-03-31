@@ -22,7 +22,7 @@ const getOne = async (req, res) => {
   res.send(user);
 };
 
-const update = async (req, res) => {
+const update = async (req, res, next) => {
   const { id } = req.params;
   const { name, password, newPassword, confirmPassword, email } = req.body;
 
@@ -40,13 +40,15 @@ const update = async (req, res) => {
     return;
   }
 
-  if (email || (newPassword && confirmPassword)) {
-    const isPwdCorrect = await bcrypt.compare(password, user.password);
+  if (email || (password && newPassword && confirmPassword)) {
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
 
-    if (!isPwdCorrect) {
-      throw ApiError.badRequest('Auth failed', {
-        password: 'Incorrect password',
-      });
+    if (!isPasswordCorrect) {
+      return next(
+        ApiError.badRequest('Auth failed', {
+          password: 'Incorrect password',
+        }),
+      );
     }
 
     const errors = {
@@ -58,7 +60,7 @@ const update = async (req, res) => {
     };
 
     if (errors.password) {
-      throw ApiError.badRequest('Bad request', errors);
+      return next(ApiError.badRequest('Bad request', errors));
     }
   }
 

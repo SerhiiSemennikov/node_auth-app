@@ -16,6 +16,8 @@ function validateEmail(value) {
   if (!emailPattern.test(value)) {
     return 'Email is not valid';
   }
+
+  return true;
 }
 
 function validatePassword(value) {
@@ -26,6 +28,8 @@ function validatePassword(value) {
   if (value.length < 6) {
     return 'At least 6 characters';
   }
+
+  return true;
 }
 
 async function register(req, res, next) {
@@ -37,7 +41,7 @@ async function register(req, res, next) {
   };
 
   if (errors.email || errors.password) {
-    throw ApiError.BadRequest('Validation error', errors);
+    return next(ApiError.BadRequest('Validation error', errors));
   }
 
   await userService.register({ email, password });
@@ -133,7 +137,7 @@ async function sendAuthentication(res, user) {
   });
 }
 
-const reqPasswordReset = async (req, res) => {
+const reqPasswordReset = async (req, res, next) => {
   const { email } = req.body;
   const user = await userService.findByEmail(email);
 
@@ -145,14 +149,14 @@ const reqPasswordReset = async (req, res) => {
   };
 
   if (errors.email) {
-    throw ApiError.badRequest('Bad request', errors);
+    return next(ApiError.badRequest('Bad request', errors));
   }
 
   await userService.reqPasswordReset(email);
   res.send({ message: 'OK' });
 };
 
-const validatePasswordResetToken = async (req, res) => {
+const validatePasswordResetToken = async (req, res, next) => {
   const { passwordResetToken } = req.params;
   const user = await User.findOne({ where: { passwordResetToken } });
 
@@ -162,14 +166,14 @@ const validatePasswordResetToken = async (req, res) => {
       (!passwordResetToken ? 'token required' : undefined),
   };
 
-  if (errors.pwdResetToken) {
-    throw ApiError.badRequest('Bad request', errors);
+  if (errors.token) {
+    return next(ApiError.badRequest('Bad request', errors));
   }
 
   res.send({ message: 'OK' });
 };
 
-const passwordReset = async (req, res) => {
+const passwordReset = async (req, res, next) => {
   const { pwdResetToken } = req.params;
   const { password, confirmPassword } = req.body;
   const user = await User.findOne({ where: { pwdResetToken } });
@@ -181,7 +185,7 @@ const passwordReset = async (req, res) => {
   };
 
   if (errors.password) {
-    throw ApiError.badRequest('Bad request', errors);
+    return next(ApiError.badRequest('Bad request', errors));
   }
 
   const hashedPass = await bcrypt.hash(password, 10);
