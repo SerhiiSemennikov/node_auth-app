@@ -1,8 +1,9 @@
 /* eslint-disable max-len */
 import jwt from 'jsonwebtoken';
+import { ApiError } from '../exceptions/ApiError.js';
 
 function generateAccessToken(user) {
-  return jwt.sign(user, process.env.JWT_ACCESS_SECRET, { expiresIn: '5s' });
+  return jwt.sign(user, process.env.JWT_ACCESS_SECRET, { expiresIn: '600s' });
 }
 
 function generateRefreshToken(user) {
@@ -13,7 +14,7 @@ function validateAccessToken(token) {
   try {
     return jwt.verify(token, process.env.JWT_ACCESS_SECRET);
   } catch (error) {
-    throw error; // return null;
+    throw ApiError.Unauthorized(error); // return null;
   }
 }
 

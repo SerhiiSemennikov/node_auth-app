@@ -1,6 +1,5 @@
 import { ApiError } from '../exceptions/ApiError.js';
 import { userService } from '../services/userService.js';
-import { authController } from './authController.js';
 import bcrypt from 'bcrypt';
 
 async function getAll(req, res, next) {
@@ -53,7 +52,7 @@ const update = async (req, res, next) => {
 
     const errors = {
       password:
-        authController.validatePassword(newPassword) ||
+        userService.validatePassword(newPassword) ||
         (newPassword !== confirmPassword
           ? 'Passwords do not match'
           : undefined),
@@ -64,12 +63,7 @@ const update = async (req, res, next) => {
     }
   }
 
-  await userService.update({
-    id,
-    name,
-    newPassword,
-    email,
-  });
+  await userService.update(id, name, newPassword, email);
 
   const updatedUser = await userService.getOne(id);
 

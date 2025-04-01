@@ -5,6 +5,18 @@ import { emailService } from '../services/emailService.js';
 import { ApiError } from '../exceptions/ApiError.js';
 import { User } from '../models/User.js';
 
+export function validatePassword(value) {
+  if (!value) {
+    return 'Password is required';
+  }
+
+  if (value.length < 6) {
+    return 'At least 6 characters';
+  }
+
+  return true;
+}
+
 function getAllActive() {
   return User.findAll({
     where: { activationToken: null },
@@ -14,6 +26,10 @@ function getAllActive() {
 
 async function getOne(id) {
   return User.findOne({ where: id });
+}
+
+async function getByPasswordResetToken(passwordResetToken) {
+  return User.findOne({ where: { passwordResetToken } });
 }
 
 function getByEmail(email) {
@@ -50,7 +66,7 @@ async function register({ email, password }) {
 async function update(
   id,
   name = undefined,
-  password = undefined,
+  newPassword = undefined,
   email = undefined,
 ) {
   const user = await User.findOne({ where: { id } });
@@ -59,10 +75,10 @@ async function update(
     user.name = name;
   }
 
-  if (password) {
-    const hashedPass = await bcrypt.hash(password, 10);
+  if (newPassword) {
+    const hashedPass = await bcrypt.hash(newPassword, 10);
 
-    user.password = hashedPass;
+    user.newPassword = hashedPass;
   }
 
   if (email) {
@@ -71,14 +87,13 @@ async function update(
 
   if (user) {
     try {
-      await User.update({ name, password, email }, { where: { id } });
+      await user.save();
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.log(`Error updating user by id ${id}`, error);
+      ApiError.NotFound(`User by ${id} not found`, error);
       throw error;
     }
   }
-  await user.save();
 }
 
 async function reqPasswordReset(email) {
@@ -101,6 +116,8 @@ export const userService = {
   getOne,
   update,
   reqPasswordReset,
+  getByPasswordResetToken,
+  validatePassword,
 };
 
 // uuidv4();

@@ -20,24 +20,12 @@ function validateEmail(value) {
   return true;
 }
 
-function validatePassword(value) {
-  if (!value) {
-    return 'Password is required';
-  }
-
-  if (value.length < 6) {
-    return 'At least 6 characters';
-  }
-
-  return true;
-}
-
 async function register(req, res, next) {
   const { email, password } = req.body;
 
   const errors = {
     email: validateEmail(email),
-    password: validatePassword(password),
+    password: userService.validatePassword(password),
   };
 
   if (errors.email || errors.password) {
@@ -139,7 +127,7 @@ async function sendAuthentication(res, user) {
 
 const reqPasswordReset = async (req, res, next) => {
   const { email } = req.body;
-  const user = await userService.findByEmail(email);
+  const user = await userService.getByEmail(email);
 
   const errors = {
     email:
@@ -158,7 +146,7 @@ const reqPasswordReset = async (req, res, next) => {
 
 const validatePasswordResetToken = async (req, res, next) => {
   const { passwordResetToken } = req.params;
-  const user = await User.findOne({ where: { passwordResetToken } });
+  const user = await userService.getByPasswordResetToken(passwordResetToken);
 
   const errors = {
     token:
@@ -174,13 +162,13 @@ const validatePasswordResetToken = async (req, res, next) => {
 };
 
 const passwordReset = async (req, res, next) => {
-  const { pwdResetToken } = req.params;
+  const { passwoordResetToken } = req.params;
   const { password, confirmPassword } = req.body;
-  const user = await User.findOne({ where: { pwdResetToken } });
+  const user = await userService.getByPasswordResetToken(passwoordResetToken);
 
   const errors = {
     password:
-      validatePassword(password) ||
+      userService.validatePassword(password) ||
       (confirmPassword !== password ? 'Passwords do not match' : undefined),
   };
 
@@ -191,8 +179,13 @@ const passwordReset = async (req, res, next) => {
   const hashedPass = await bcrypt.hash(password, 10);
 
   user.password = hashedPass;
-  user.pwdResetToken = null;
-  user.save();
+  user.passwordResetToken = null;
+
+  try {
+    user.save();
+  } catch (error) {
+    throw ApiError.BadRequest('Cannot save reset password', error);
+  }
 
   res.sendStatus(204);
 };
